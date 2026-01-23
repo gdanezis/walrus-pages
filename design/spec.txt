@@ -1,0 +1,500 @@
+Walrus Pages - Technical Specification
+======================================
+
+Project Overview
+----------------
+A decentralized content publishing platform built as a single-page application (SPA) that allows users to create, store, and view Markdown pages on Walrus storage, authenticated through Sui wallets.
+
+Core Requirements
+-----------------
+
+1. Self-Contained SPA
+   - Single HTML file containing all JavaScript and CSS
+   - Served as a Walrus blob (text/html content type)
+   - Accessed via Walrus aggregator URL
+   - No external dependencies at runtime (all code bundled)
+
+2. Storage Layer
+   - All content stored as Walrus blobs
+   - Markdown content stored as text/markdown blobs
+   - Sui blockchain for payment and blob metadata
+   - No traditional backend servers
+
+3. Wallet Integration
+   - Wallet connection NOT required for viewing/reading pages
+   - Wallet connection ONLY required for:
+     * Publishing new pages (upload transaction)
+     * Extending blob storage duration (extend transaction)
+   - Users pay for storage in SUI/WAL tokens
+   - Wallet signatures for blob uploads and extensions
+
+Architecture
+-----------
+
+Components:
+
+1. Main Application (index.html)
+   - Viewer Mode: Displays Markdown content
+   - Editor Mode: Create/edit interface
+   - Navigation: Handle URL parameters
+   - Wallet Manager: Connect/disconnect wallet
+
+2. Walrus Integration Layer
+   - Blob Download: Simple HTTP GET to aggregator (no SDK needed)
+   - Aggregator Detection: Extract base URL to determine which aggregator to use
+   - Aggregator Adaptation: If user accesses via different aggregator, use that one
+   - Blob Upload: Use Walrus TypeScript SDK (requires wallet connection)
+   - Blob Extension: Use Walrus TypeScript SDK (requires wallet connection)
+   - Content-Type handling
+
+3. Sui Integration Layer
+   - Wallet connection (Sui Wallet Standard)
+   - Transaction signing for uploads
+   - Payment processing for storage
+
+4. Rendering Engine
+   - Markdown parser
+   - HTML sanitization
+   - Style injection
+
+5. Blob Management
+   - Display blob expiry time in viewer
+   - Extend blob button (requires wallet connection)
+   - Execute extend transaction via Sui/Walrus SDK
+   - Update displayed expiry time after extension
+
+Technical Stack
+---------------
+
+Frontend Libraries (bundled):
+- Markdown Parser: marked.js or markdown-it
+- WYSIWYG Editor: SimpleMDE, EasyMDE, or similar Markdown editor
+- Sui SDK: @mysten/sui.js
+- Walrus SDK: @mysten/walrus (TypeScript SDK for uploads/extensions)
+- Wallet Adapter: @mysten/wallet-standard
+- HTML Sanitizer: DOMPurify
+
+Build Process:
+- Bundle all dependencies into single HTML file
+- Inline all CSS and JavaScript
+- Minify for optimal blob size
+- Output: single index.html file
+
+Data Flow
+---------
+
+View Flow:
+1. User navigates to: https://aggregator.walrus.site/v1/<app-object-id>?page=<content-object-id>
+   - Note: Using Sui object IDs (not blob IDs) to include content-type metadata
+2. Aggregator serves main app HTML
+3. App detects aggregator from base URL (e.g., aggregator.walrus.site)
+4. App JavaScript extracts ?page=<content-object-id> from URL
+5. App fetches blob via: https://<detected-aggregator>/v1/<content-object-id>
+6. App parses Markdown and renders to page
+7. App displays blob expiry time and "Extend" button
+8. If no ?page parameter, show landing page with create flow explanation
+
+Create Flow:
+1. User clicks "Create Page" button
+2. Editor interface appears with WYSIWYG Markdown editor
+   - Split view: WYSIWYG editor on left, live preview on right
+   - Toolbar with formatting options (bold, italic, headers, lists, links, etc.)
+   - Supports keyboard shortcuts for Markdown
+3. User writes content using WYSIWYG editor
+4. User clicks "Publish"
+5. App prompts wallet connection (ONLY at this stage if not connected)
+6. App initiates Walrus blob upload using TypeScript SDK:
+   a. Create blob with content-type: text/markdown
+   b. Set storage epochs to maximum (50+)
+   c. User signs transaction to pay for storage
+   d. Transaction executes on Sui mainnet
+7. App receives blob object ID from response
+8. App redirects to: ?page=<new-object-id>
+9. User sees published page with expiry time and shareable link
+
+Wallet-Connected Features:
+1. When user connects wallet (optional on landing page):
+   - Scan wallet address for owned Walrus blob objects
+   - Filter for blobs with content-type: text/markdown
+   - Display "My Pages" section on landing page
+   - Show list of user's created pages with:
+     * Page title (extracted from first heading or "Untitled")
+     * Creation date
+     * Expiry date
+     * Quick link to view page
+     * Extend button next to each page
+2. "My Pages" persists in navigation when wallet connected
+3. Allows users to manage their published content
+
+File Structure
+--------------
+
+Single HTML File Structure:
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Walrus Pages</title>
+  <style>
+    /* All CSS inlined here */
+    /* - Layout styles */
+    /* - Editor styles */
+    /* - Markdown rendering styles */
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Navigation Bar -->
+    <nav id="navbar">
+      <div class="logo">Walrus Pages</div>
+      <button id="create-btn">Create Page</button>
+      <button id="wallet-btn">Connect Wallet</button>
+    </nav>
+    
+    <!-- Content Area (viewer mode) -->
+    <div id="viewer" class="hidden">
+      <div class="blob-info">
+        <span id="expiry-time">Expires: Loading...</span>
+        <button id="extend-btn">Extend Storage</button>
+      </div>
+      <article id="content"></article>
+    </div>
+    
+    <!-- Editor Modal (create mode) -->
+    <div id="editor-modal" class="hidden">
+      <div class="editor-container">
+        <div id="wysiwyg-editor" class="editor-pane">
+          <!-- WYSIWYG editor (SimpleMDE/EasyMDE) mounted here -->
+        </div>
+        <div class="preview-pane" id="preview"></div>
+      </div>
+      <div class="editor-actions">
+        <button id="publish-btn">Publish</button>
+        <button id="cancel-btn">Cancel</button>
+      </div>
+    </div>
+    
+    <!-- Landing Page (no content) -->
+    <div id="landing">
+      <h1>Welcome to Walrus Pages</h1>
+      <p>Decentralized content publishing on Walrus</p>
+      <button class="create-large">Create Your First Page</button>
+      
+      <!-- My Pages section (shown when wallet connected) -->
+      <div id="my-pages" class="hidden">
+        <h2>My Pages</h2>
+        <div id="pages-list">
+          <!-- Dynamically populated with user's pages -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* All JavaScript bundled here */
+    /* - Markdown library */
+    /* - Sui SDK */
+    /* - Walrus SDK */
+    /* - Application logic */
+  </script>
+</body>
+</html>
+
+Key JavaScript Modules
+---------------------
+
+1. Router Module
+   - Parse URL parameters
+   - Extract blob ID from ?page=<id>
+   - Handle navigation between views
+
+2. Walrus Client Module
+   - Download blob by ID
+   - Upload blob with content
+   - Handle aggregator communication
+   - API endpoint: configurable aggregator URL
+
+3. Sui Wallet Module
+   - Connect to wallet (using Wallet Standard)
+   - Get wallet address
+   - Sign and execute transactions
+   - Handle wallet events (connect/disconnect)
+
+4. Storage Transaction Module
+   - Create Walrus store transaction
+   - Calculate storage cost
+   - Submit transaction via wallet
+   - Parse transaction results for blob ID
+
+5. Markdown Renderer Module
+   - Parse Markdown to HTML
+   - Sanitize output (prevent XSS)
+   - Apply styling
+   - Render to content div
+
+6. Editor Module
+   - WYSIWYG Markdown editor integration
+   - Live preview rendering
+   - Validation
+   - Trigger upload flow
+
+7. Blob Extension Module
+   - Query blob metadata for expiry time
+   - Display expiry information
+   - Create extension transaction
+   - Execute via wallet
+   - Update UI after extension
+
+8. Aggregator Detection Module
+   - Parse current URL to extract aggregator domain
+   - Default to detected aggregator for all blob requests
+   - Handle different aggregator formats
+
+9. User Content Scanner Module
+   - Query Sui for objects owned by connected wallet
+   - Filter for Walrus blob objects with markdown content-type
+   - Extract metadata (creation date, expiry, size)
+   - Fetch first few lines to extract page title
+   - Display in "My Pages" section
+   - Provide quick actions (view, extend)
+
+API Integration Details
+-----------------------
+
+Walrus Aggregator API:
+
+1. Download Blob:
+   GET https://<aggregator>/v1/<object-id>
+   - Uses Sui object ID (not blob ID) to include content-type metadata
+   - Response: blob content with appropriate content-type header
+   - Aggregator is dynamically detected from the URL serving the app
+   
+2. Upload Blob:
+   - Use Walrus TypeScript SDK (not HTTP publisher endpoint)
+   - SDK handles transaction creation and blob storage
+   - Parameters:
+     * Content: Markdown text
+     * Content-Type: text/markdown
+     * Storage epochs: Maximum (50+)
+   - Returns: Sui object ID of the stored blob
+   - Requires wallet connection and transaction signature
+
+3. Get Blob Metadata:
+   - Use Sui RPC to query blob object
+   - Extract expiry epoch from blob object
+   - Calculate expiry time from current epoch
+
+Sui RPC API:
+
+1. Execute Upload Transaction:
+   - Create transaction for Walrus blob storage
+   - Set storage epochs to maximum (50+)
+   - Include blob data and payment
+   - Sign with wallet
+   - Execute and wait for confirmation
+   - Return blob object ID
+
+2. Execute Extend Transaction:
+   - Query existing blob object
+   - Create transaction to extend storage duration
+   - Add additional epochs (up to maximum)
+   - Include payment for extension
+   - Sign with wallet
+   - Execute and wait for confirmation
+   - Return updated expiry epoch
+
+3. Get Blob Metadata:
+   - Query blob object by object ID
+   - Extract storage expiry epoch
+   - Calculate human-readable expiry date
+
+4. Get Wallet Balance:
+   - Query SUI/WAL balance
+   - Display to user before upload or extension
+
+5. Query User's Blob Objects:
+   - Use Sui RPC getOwnedObjects with filter
+   - Filter by Walrus blob object type
+   - Optionally filter by content-type metadata
+   - Retrieve object IDs, creation timestamps, expiry epochs
+   - Paginate if user has many blobs
+
+Configuration
+-------------
+
+Dynamic Configuration:
+- Walrus aggregator URL: Detected from app's base URL
+  * If app loaded from https://aggregator-a.walrus.site/v1/..., use aggregator-a
+  * If app loaded from https://aggregator-b.walrus.site/v1/..., use aggregator-b
+  * Fallback: "https://aggregator.walrus.site"
+- Sui network: "mainnet" (always)
+- Storage epochs: Maximum allowed (50+ epochs, verify exact limit)
+
+Hardcoded in App:
+- Sui RPC endpoint: Mainnet RPC URL
+- Walrus package ID: Mainnet Walrus package
+- Upload method: Walrus TypeScript SDK (no publisher HTTP endpoint)
+
+Notes:
+- No hardcoded aggregator - always use detected one
+- No publisher URL needed - SDK handles uploads
+- Maximum storage epochs ensure long-term availability
+
+User Experience Flow
+--------------------
+
+First Visit (no URL parameter):
+1. Show landing page
+2. Explain what Walrus Pages is
+3. Show "Create Page" button
+4. Optionally show "Connect Wallet" button to view "My Pages"
+5. If wallet connected:
+   - Scan for user's markdown blobs
+   - Display "My Pages" section with list of their published pages
+   - Show each page with title, dates, and quick actions
+6. Show example pages or getting started guide
+
+Viewing a Page:
+1. Fetch blob content
+2. Show loading indicator
+3. Render Markdown with styling
+4. Show "Create Your Own" button in nav
+5. Handle errors (blob not found, invalid content)
+
+Creating a Page:
+1. Click "Create Page" (no wallet needed yet)
+2. Show WYSIWYG editor interface:
+   - WYSIWYG Markdown editor with toolbar (left/top)
+   - Live preview (right/bottom)
+   - Character/size counter
+   - Formatting buttons and keyboard shortcuts
+3. User writes content using editor
+4. Click "Publish"
+5. NOW prompt wallet connection (first time wallet is needed)
+6. Show cost estimate for maximum storage epochs
+7. User confirms and signs transaction with wallet
+8. Show upload progress (SDK handles transaction)
+9. Redirect to new page: ?page=<object-id>
+10. Show success message with:
+    - Shareable link
+    - Expiry date
+    - "Extend Storage" button
+11. If wallet connected, add page to "My Pages" list
+
+Error Handling
+--------------
+
+1. Network Errors
+   - Aggregator unavailable: Show retry button
+   - Publisher unavailable: Show status message
+   - Timeout: Configurable retry logic
+
+2. Wallet Errors
+   - User rejects transaction: Return to editor (for upload) or stay on page (for extension)
+   - Insufficient balance: Show balance and required amount for operation
+   - Wallet not installed: Link to wallet installation
+   - Extension failure: Show error, keep current page viewable
+
+3. Content Errors
+   - Blob not found: Show 404 page with create button
+   - Invalid Markdown: Render as plain text
+   - Empty content: Show message
+
+4. Upload Errors
+   - Transaction failed: Show error, allow retry
+   - Blob too large: Show size limit and current size
+   - Network failure: Allow retry with same content
+
+Security Considerations
+-----------------------
+
+1. Content Sanitization
+   - Sanitize rendered HTML to prevent XSS
+   - Use DOMPurify or similar library
+   - Whitelist allowed HTML tags
+   - Remove dangerous attributes (onclick, onerror, etc.)
+
+2. URL Parameter Validation
+   - Validate blob ID format
+   - Prevent injection attacks
+   - Handle malformed parameters gracefully
+
+3. Wallet Security
+   - Never request private keys
+   - Use Wallet Standard for signing
+   - Show transaction details before signing
+   - No automatic transactions
+
+4. Content-Type Validation
+   - Verify content-type of downloaded blobs
+   - Handle unexpected types gracefully
+   - Warn users about non-markdown content
+
+Deployment Process
+------------------
+
+1. Development:
+   - Build SPA with all dependencies bundled
+   - Test locally with mock Walrus/Sui
+   - Validate single-file output
+
+2. Testing:
+   - Test with real testnet aggregator
+   - Test wallet integration
+   - Test upload/download flows
+   - Verify blob storage
+
+3. Production Deployment:
+   - Build production bundle (minified)
+   - Upload index.html to Walrus as blob
+   - Set content-type: text/html
+   - Note resulting blob ID
+   - Access via: https://aggregator.walrus.site/v1/<blob-id>
+
+4. Updates:
+   - Modify code
+   - Rebuild bundle
+   - Upload new version to Walrus
+   - New blob ID for new version
+   - Old versions remain accessible
+
+Implementation Checklist
+-----------------------
+
+[ ] Set up development environment
+[ ] Install Sui and Walrus TypeScript SDKs
+[ ] Create basic HTML structure
+[ ] Implement URL parameter parsing
+[ ] Implement aggregator detection from base URL
+[ ] Integrate Markdown parser
+[ ] Build Walrus blob download (simple HTTP GET)
+[ ] Integrate WYSIWYG Markdown editor (SimpleMDE/EasyMDE)
+[ ] Build editor interface with live preview
+[ ] Implement wallet connection (only for publish/extend)
+[ ] Implement user blob scanning when wallet connected
+[ ] Display "My Pages" section on landing page
+[ ] Implement blob upload using TS SDK with max epochs
+[ ] Query and display blob expiry time
+[ ] Implement blob extension functionality
+[ ] Add error handling
+[ ] Add loading states
+[ ] Style and polish UI
+[ ] Test on mainnet
+[ ] Bundle into single HTML file
+[ ] Deploy to Walrus
+[ ] Document usage and share
+
+Dependencies and Resources
+--------------------------
+
+Required:
+- Sui wallet (e.g., Sui Wallet browser extension)
+- Walrus testnet/mainnet access
+- SUI tokens for testing
+- Modern browser with Web3 support
+
+Documentation:
+- Sui documentation: https://docs.sui.io
+- Walrus documentation: https://docs.walrus.site
+- Wallet Standard: https://github.com/wallet-standard/wallet-standard

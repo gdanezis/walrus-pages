@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Walrus Pages Manager</title>
+  <link rel="stylesheet" href="src/styles/main.css">
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav id="navbar">
+    <a href="/" class="logo">🦭 Walrus Pages</a>
+    <div class="nav-actions">
+      <a href="index.html" class="nav-btn">📄 Pages</a>
+      <a href="admin.html" class="nav-btn active">🔧 Admin</a>
+      <button id="wallet-btn" class="nav-btn">🔗 Connect Wallet</button>
+    </div>
+  </nav>
+
+  <div class="admin-container">
+    <header class="admin-header">
+      <h1>🔧 Admin Panel</h1>
+      <p class="subtitle">Manage expired and uncertified blobs</p>
+    </header>
+
+    <div id="loading" class="loading">Loading...</div>
+    <div id="error" class="error"></div>
+
+    <section class="stats-section">
+      <div class="stat-card">
+        <div class="stat-label">Total Deletable</div>
+        <div class="stat-value" id="expired-count">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Uncertified</div>
+        <div class="stat-value" id="uncertified-count">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Selected</div>
+        <div class="stat-value" id="selected-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Current Epoch</div>
+        <div class="stat-value" id="current-epoch">-</div>
+      </div>
+    </section>
+
+    <section class="batch-actions" id="batch-actions" style="display: none;">
+      <button id="burn-selected" class="btn btn-danger">
+        🔥 Burn Selected (<span id="burn-count">0</span>)
+      </button>
+      <button id="select-all" class="btn btn-secondary">
+        ☑️ Select All Expired
+      </button>
+      <button id="clear-selection" class="btn btn-secondary">
+        ❌ Clear Selection
+      </button>
+    </section>
+
+    <section class="blobs-section">
+      <h2>Deletable Blobs (Expired + Uncertified)</h2>
+      <div id="expired-blobs" class="blobs-grid"></div>
+    </section>
+  </div>
+
+  <script type="module" src="src/admin.js"></script>
+</body>
+</html>

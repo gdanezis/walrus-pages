@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Walrus Pages</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦭</text></svg>">
+</head>
+<body>
+  <div id="app">
+    <!-- Navigation Bar -->
+    <nav id="navbar">
+      <a href="/" class="logo">🦭 Walrus Pages</a>
+      <div class="nav-actions">
+        <button id="browse-address-btn" class="nav-btn">👥 Browse Address</button>
+        <button id="my-pages-btn" class="nav-btn hidden">📄 My Pages</button>
+        <button id="create-btn" class="nav-btn">➕ Create Page</button>
+        <button id="settings-btn" class="nav-btn">⚙️ Settings</button>
+        <button id="wallet-btn" class="nav-btn">🔗 Connect Wallet</button>
+      </div>
+    </nav>
+    
+    <!-- Address input panel (global, available from all views) -->
+    <div id="address-input-panel" class="address-input-panel hidden">
+      <div class="address-input-content">
+        <label for="other-address-input">Enter Sui Address:</label>
+        <div class="address-input-group">
+          <input 
+            type="text" 
+            id="other-address-input" 
+            placeholder="0x..." 
+            class="address-input"
+          />
+          <button id="view-address-btn" class="btn-primary">View</button>
+          <button id="cancel-address-btn" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Landing Page -->
+    <div id="landing" class="view">
+      <div class="landing-container">
+        <!-- Hero Section -->
+        <div class="hero">
+          <h1>Publish to the Decentralized Web</h1>
+          <p class="tagline">Write freely. Own completely.</p>
+          <div class="cta-buttons">
+            <button id="create-landing-btn" class="btn-primary btn-large">Start Writing</button>
+          </div>
+        </div>
+
+        <!-- How It Works -->
+        <section class="how-it-works">
+          <h2>How It Works</h2>
+          <div class="steps">
+            <div class="step">
+              <span class="step-number">1</span>
+              <div class="step-content">
+                <h3>Connect Wallet</h3>
+                <p>One-click sign-in with any Sui wallet</p>
+              </div>
+            </div>
+            <div class="step">
+              <span class="step-number">2</span>
+              <div class="step-content">
+                <h3>Write & Publish</h3>
+                <p>Compose in Markdown, distributed across the network</p>
+              </div>
+            </div>
+            <div class="step">
+              <span class="step-number">3</span>
+              <div class="step-content">
+                <h3>Share Your Link</h3>
+                <p>Anyone can view. Readers can tip you directly.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features">
+          <h2>Why Publish Here?</h2>
+          <div class="feature-grid">
+            <div class="feature">
+              <span class="icon">🔒</span>
+              <h3>You Own It</h3>
+              <p>Cryptographic proof of ownership. No centralized platform can revoke it.</p>
+            </div>
+            <div class="feature">
+              <span class="icon">🌍</span>
+              <h3>Always Available</h3>
+              <p>Distributed across independent nodes. No single point of failure.</p>
+            </div>
+            <div class="feature">
+              <span class="icon">☕</span>
+              <h3>Direct Tips</h3>
+              <p>Readers pay you directly. No middlemen taking cuts.</p>
+            </div>
+            <div class="feature">
+              <span class="icon">🔓</span>
+              <h3>No Lock-In</h3>
+              <p>Content accessible via open protocols. Build your own interfaces.</p>
+            </div>
+          </div>
+        </section>
+        
+        <!-- My Pages Section (shown when wallet connected) -->
+        <div id="my-pages-section" class="hidden">
+          <div class="section-header">
+            <h2>My Pages <a id="my-profile-link" href="#" class="profile-icon" title="View your public profile">👤</a></h2>
+          </div>
+          
+          <div id="my-pages-list" class="pages-grid">
+            <div class="loading">Loading your pages...</div>
+          </div>
+          
+          <div id="sent-pages-container" class="hidden" style="margin-top: 3rem;">
+            <div class="section-header">
+              <h2>Received Pages</h2>
+            </div>
+            <div id="sent-pages-list" class="pages-grid">
+            </div>
+          </div>
+        </div>
+
+        <!-- Getting Started -->
+        <section class="getting-started">
+          <h2>Ready to Start?</h2>
+          <p>You'll need a Sui wallet and small amounts of SUI and WAL tokens.</p>
+          <button id="get-started-btn" class="btn-primary btn-large">Create Your First Page</button>
+          <p class="help-links">
+            <a href="https://docs.wal.app" target="_blank" rel="noopener">Learn about Walrus</a> · 
+            <a href="https://sui.io/get-started" target="_blank" rel="noopener">Get a Sui wallet</a> · 
+            <a href="https://docs.wal.app/walrus-sites/intro.html" target="_blank" rel="noopener">About Walrus Sites</a>
+          </p>
+        </section>
+      </div>
+    </div>
+    
+    <!-- Viewer Page -->
+    <div id="viewer" class="view hidden">
+      <div class="viewer-container">
+        <h1 id="page-title-display" class="page-title"></h1>
+        <div class="page-metadata">
+          <div class="metadata-left">
+            <span id="expiry-time" class="expiry-epoch"></span>
+          </div>
+          <div class="metadata-actions">
+            <button id="copy-link-btn" class="btn-icon" title="Copy link to page">🔗</button>
+            <a id="sui-explorer-link" class="btn-icon" title="View on Sui Explorer" target="_blank" rel="noopener" style="display: none;">🔍</a>
+            <a id="owner-link" class="btn-icon" title="View owner on SuiVision" target="_blank" rel="noopener" style="display: none;">👤</a>
+            <button id="tip-owner-btn" class="btn-icon" title="Tip Owner" style="display: none;">☕</button>
+            <button id="extend-btn" class="btn-icon" title="Extend Storage">📅</button>
+          </div>
+        </div>
+        <article id="content" class="markdown-content">
+        </article>
+      </div>
+    </div>
+    
+    <!-- Address View -->
+    <div id="address-view" class="view hidden">
+      <div class="landing-container">
+        <div class="address-header">
+          <h1 id="address-title">Pages Published by</h1>
+          <a id="address-explorer-link" class="btn-icon" target="_blank" rel="noopener" title="View address on explorer" style="display: none;">🔍</a>
+        </div>
+        
+        <div id="address-pages-list" class="pages-grid">
+          <div class="loading">Loading pages...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tip Modal -->
+    <div id="tip-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>💰 Tip the Owner</h2>
+          <button id="close-tip-btn" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="subtitle">Send WAL tokens directly to the page owner</p>          <div class="tip-owner-info" id="tip-owner-info" style="display: none;">
+            <span class="metadata-label">Owner:</span>
+            <a id="tip-owner-explorer-link" class="metadata-link" target="_blank" rel="noopener"></a>
+          </div>          <div class="tip-options">
+            <button class="tip-btn" data-amount="1">1 WAL</button>
+            <button class="tip-btn" data-amount="5">5 WAL</button>
+            <button class="tip-btn" data-amount="10">10 WAL</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancel-tip-btn" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Editor Modal -->
+    <div id="editor-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Create New Page</h2>
+          <button id="close-editor-btn" class="btn-close">&times;</button>
+        </div>
+        <div class="editor-fields">
+          <div class="form-field">
+            <label for="page-title-input">Page Title</label>
+            <input type="text" id="page-title-input" placeholder="Enter page title..." />
+          </div>
+          <div class="form-field">
+            <label for="markdown-editor">Content (Markdown)</label>
+            <textarea id="markdown-editor" placeholder="Write your content in Markdown..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancel-btn" class="btn-secondary">Cancel</button>
+          <button id="publish-btn" class="btn-primary">Publish to Walrus</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⚙️ Network Settings</h2>
+          <button id="close-settings-btn" class="btn-close">&times;</button>
+        </div>
+        <div class="settings-content">
+          <p class="settings-description">Configure custom aggregator and upload relay endpoints. Leave blank to use defaults.</p>
+          
+          <div class="form-field">
+            <label for="aggregator-input">
+              Aggregator URL
+              <span class="field-hint">Endpoint for reading blobs</span>
+            </label>
+            <input 
+              type="url" 
+              id="aggregator-input" 
+              placeholder="https://aggregator.walrus-mainnet.walrus.space" 
+            />
+          </div>
+          
+          <div class="form-field">
+            <label for="upload-relay-input">
+              Upload Relay URL
+              <span class="field-hint">Endpoint for uploading blobs</span>
+            </label>
+            <input 
+              type="url" 
+              id="upload-relay-input" 
+              placeholder="https://upload-relay.mainnet.walrus.space" 
+            />
+          </div>
+          
+          <div class="form-field">
+            <label for="sui-rpc-input">
+              Sui RPC URL
+              <span class="field-hint">Sui blockchain full node endpoint</span>
+            </label>
+            <input 
+              type="url" 
+              id="sui-rpc-input" 
+              placeholder="https://fullnode.mainnet.sui.io:443" 
+            />
+          </div>
+          
+          <div class="settings-info">
+            <p><strong>Currently using:</strong></p>
+            <ul>
+              <li>Aggregator: <code id="current-aggregator"></code></li>
+              <li>Upload Relay: <code id="current-upload-relay"></code></li>
+              <li>Sui RPC: <code id="current-sui-rpc"></code></li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="reset-settings-btn" class="btn-secondary">Reset to Defaults</button>
+          <button id="save-settings-btn" class="btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="overlay hidden">
+      <div class="spinner"></div>
+      <p id="loading-message">Processing...</p>
+    </div>
+  </div>
+  
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

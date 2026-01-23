@@ -1,0 +1,36 @@
+{
+  "name": "walrus-pages",
+  "version": "1.0.0",
+  "description": "Decentralized content publishing on Walrus",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:index && npm run build:admin",
+    "build:index": "BUILD_PAGE=index vite build",
+    "build:admin": "BUILD_PAGE=admin vite build --emptyOutDir=false",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@mysten/sui": "^1.45.2",
+    "@mysten/wallet-standard": "^0.19.9",
+    "@mysten/walrus": "^0.9.0",
+    "@mysten/walrus-wasm": "^0.2.0",
+    "dompurify": "^3.3.1",
+    "easymde": "^2.20.0",
+    "marked": "^17.0.1"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/marked": "^5.0.2",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-singlefile": "^2.3.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
+  }
+}
