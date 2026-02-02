@@ -10,11 +10,9 @@ import { getPageId, showView, getAddress } from './utils/router.js';
 import { fetchBlob } from './utils/walrus.js';
 import { renderMarkdown } from './utils/markdown.js';
 import { 
-  connectWallet, 
-  disconnectWallet, 
   isWalletConnected,
   getWalletAddress,
-  restoreWalletConnection
+  subscribeToWalletChanges
 } from './utils/wallet.js';
 import {
   showLoading,
@@ -40,6 +38,7 @@ import {
 } from './utils/batch-operations.js';
 import { initSettingsModal } from './components/settings-modal.js';
 import { WAL_COIN_TYPE } from './config/constants.js';
+import { mountWalletConnectButton } from './dapp-kit/connect-button.jsx';
 
 // Global state
 let editor = null;
@@ -49,20 +48,49 @@ let currentPageMetadata = null; // Track metadata for extension calculations
 let selectedBlobs = new Set(); // Track selected blob object IDs
 let currentBlobs = []; // Store current blob list
 
+mountWalletConnectButton('wallet-connect-root');
+
+const walletUiState = {
+  lastConnectedAddress: null,
+  loadingUserPages: false,
+};
+
+subscribeToWalletChanges(async ({ isConnected, address }) => {
+  updateWalletButton(isConnected, address ?? '');
+  if (isConnected && address) {
+    if (walletUiState.lastConnectedAddress !== address) {
+      walletUiState.lastConnectedAddress = address;
+      showMyPagesButton(true);
+      updateProfileLink(address);
+      if (isLandingViewActive() && !walletUiState.loadingUserPages) {
+        walletUiState.loadingUserPages = true;
+        try {
+          await loadUserPages();
+        } catch (error) {
+          console.error('Failed to load user pages after wallet connect:', error);
+        } finally {
+          walletUiState.loadingUserPages = false;
+        }
+      }
+    } else {
+      showMyPagesButton(true);
+    }
+  } else {
+    walletUiState.lastConnectedAddress = null;
+    showMyPagesButton(false);
+    showMyPagesSection(false);
+  }
+});
+
+function isLandingViewActive() {
+  const currentView = document.querySelector('.view:not(.hidden)');
+  return Boolean(currentView && currentView.id === 'landing');
+}
+
 // Initialize app
 async function init() {
   // Initialize settings modal
   initSettingsModal();
-  
-  // Try to restore wallet connection from previous session
-  const restoredAddress = await restoreWalletConnection();
-  if (restoredAddress) {
-    // Ensure DOM is ready before updating UI
-    await new Promise(resolve => setTimeout(resolve, 0));
-    updateWalletButton(true, restoredAddress);
-    showMyPagesButton(true);
-    updateProfileLink(restoredAddress);
-  }
   
   const pageId = getPageId();
   const addressParam = getAddress();
@@ -77,10 +105,6 @@ async function init() {
     // Show landing page
     showView('landing');
     
-    // Load user's pages if wallet was restored
-    if (restoredAddress) {
-      await loadUserPages();
-    }
   }
   
   setupEventListeners();
@@ -273,12 +297,6 @@ function setupEventListeners() {
   
   if (publishBtn) {
     publishBtn.addEventListener('click', publishPage);
-  }
-  
-  // Wallet button
-  const walletBtn = document.getElementById('wallet-btn');
-  if (walletBtn) {
-    walletBtn.addEventListener('click', toggleWallet);
   }
   
   // My Pages button
@@ -525,39 +543,6 @@ function hideAddressInputPanel() {
   }
 }
 
-// Toggle wallet connection
-async function toggleWallet() {
-  if (isWalletConnected()) {
-    disconnectWallet();
-    updateWalletButton(false);
-    showMyPagesButton(false);
-    showMyPagesSection(false);
-  } else {
-    await handleWalletConnect();
-  }
-}
-
-// Handle wallet connection
-async function handleWalletConnect() {
-  showLoading('Connecting wallet...');
-  
-  try {
-    const address = await connectWallet();
-    updateWalletButton(true, address);
-    showMyPagesButton(true);
-    updateProfileLink(address);
-    hideLoading();
-    
-    // Load user's pages if on landing view
-    const currentView = document.querySelector('.view:not(.hidden)');
-    if (currentView && currentView.id === 'landing') {
-      await loadUserPages();
-    }
-  } catch (error) {
-    console.error('Wallet connection error:', error);
-    showError(error.message);
-  }
-}
 
 // Load user's pages
 async function loadUserPages() {
@@ -977,7 +962,7 @@ async function sendTip(amount) {
   closeTipModal();
   
   try {
-    const { SuiClient } = await import('@mysten/sui/client');
+    const { CoreClient } = await import('@mysten/sui/client');
     const { Transaction } = await import('@mysten/sui/transactions');
     const { getWallet, getAccount, signAndExecuteTransaction } = await import('./utils/wallet.js');
     const { getSuiRpcUrl } = await import('./utils/settings.js');
@@ -985,7 +970,7 @@ async function sendTip(amount) {
     const wallet = getWallet();
     const account = getAccount();
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     
     // Get WAL coins
     const walCoins = await client.getCoins({

@@ -3,7 +3,7 @@
  * Handles blob upload operations to Walrus storage
  */
 
-import { SuiClient } from '@mysten/sui/client';
+import { CoreClient } from '@mysten/sui/client';
 import { WalrusClient } from '@mysten/walrus';
 import { getWallet, getAccount } from '../utils/wallet.js';
 import { getUploadRelayUrl, getSuiRpcUrl } from '../utils/settings.js';
@@ -128,7 +128,7 @@ export async function uploadToWalrus(content, options = {}) {
     const uploadRelayUrl = getUploadRelayUrl();
     
     // Create SuiClient
-    const suiClient = new SuiClient({ url: suiRpcUrl });
+    const suiClient = new CoreClient({ url: suiRpcUrl });
     
     console.log('Using upload relay:', uploadRelayUrl);
     console.log('Using Sui RPC:', suiRpcUrl);

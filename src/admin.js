@@ -2,7 +2,7 @@
  * Admin Panel for managing expired blobs
  */
 
-import { connectWallet, getAccount } from './utils/wallet.js';
+import { getAccount, subscribeToWalletChanges } from './utils/wallet.js';
 import { fetchAllBlobs } from './utils/api.js';
 import { deleteBlobsBatch } from './utils/batch-operations.js';
 import { WalrusClient } from '@mysten/walrus';
@@ -12,10 +12,7 @@ import {
   createAdminBlobCard, 
   attachAdminCardHandlers 
 } from './components/blob-card.js';
-import { 
-  SUI_RPC_URL,
-  WALRUS_NETWORK 
-} from './config/constants.js';
+import { mountWalletConnectButton } from './dapp-kit/connect-button.jsx';
 
 // State
 let allBlobs = [];
@@ -37,30 +34,35 @@ const burnSelectedBtn = document.getElementById('burn-selected');
 const selectAllBtn = document.getElementById('select-all');
 const clearSelectionBtn = document.getElementById('clear-selection');
 const burnCountEl = document.getElementById('burn-count');
-const walletBtn = document.getElementById('wallet-btn');
+mountWalletConnectButton('wallet-connect-root');
 
-function updateWalletInfo() {
-  const account = getAccount();
-  if (account) {
-    walletBtn.textContent = `🟢 ${account.address.slice(0, 6)}...${account.address.slice(-4)}`;
-    walletBtn.classList.add('connected');
+const adminWalletState = {
+  lastConnectedAddress: null,
+  loadingData: false,
+};
+
+subscribeToWalletChanges(async ({ isConnected, address }) => {
+  if (isConnected && address) {
+    if (adminWalletState.lastConnectedAddress !== address && !adminWalletState.loadingData) {
+      adminWalletState.lastConnectedAddress = address;
+      adminWalletState.loadingData = true;
+      try {
+        await loadData();
+      } catch (error) {
+        console.error('Failed to load admin data:', error);
+        showError('Failed to load data: ' + error.message);
+      } finally {
+        adminWalletState.loadingData = false;
+      }
+    }
   } else {
-    walletBtn.textContent = '🔗 Connect Wallet';
-    walletBtn.classList.remove('connected');
+    adminWalletState.lastConnectedAddress = null;
+    if (!adminWalletState.loadingData) {
+      hideLoading();
+    }
   }
-}
+});
 
-async function handleConnectWallet() {
-  try {
-    showLoading('Connecting wallet...');
-    await connectWallet();
-    updateWalletInfo();
-    await loadData();
-  } catch (error) {
-    console.error('Failed to connect wallet:', error);
-    showError('Failed to connect wallet: ' + error.message);
-  }
-}
 
 function updateStats() {
   expiredCountEl.textContent = expiredBlobs.length;
@@ -244,7 +246,6 @@ function handleClearSelection() {
 }
 
 // Event listeners
-walletBtn.addEventListener('click', handleConnectWallet);
 burnSelectedBtn.addEventListener('click', handleBurnSelected);
 selectAllBtn.addEventListener('click', handleSelectAll);
 clearSelectionBtn.addEventListener('click', handleClearSelection);
@@ -253,16 +254,18 @@ clearSelectionBtn.addEventListener('click', handleClearSelection);
 async function init() {
   console.log('Initializing admin panel...');
   
-  updateWalletInfo();
-  
   const account = getAccount();
   if (account) {
     // Wallet already connected, load data
     try {
+      adminWalletState.lastConnectedAddress = account.address;
+      adminWalletState.loadingData = true;
       await loadData();
     } catch (error) {
       console.error('Error loading data:', error);
       showError('Failed to load data: ' + error.message);
+    } finally {
+      adminWalletState.loadingData = false;
     }
   } else {
     // Show connect wallet button

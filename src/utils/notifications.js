@@ -180,14 +180,13 @@ export function showToast(message, type = 'info', duration = 3000) {
  * @param {string} address - The wallet address (if connected)
  */
 export function updateWalletButton(isConnected, address = '') {
-  const btn = document.getElementById('wallet-btn');
-  if (btn) {
-    if (isConnected) {
-      btn.textContent = `🟢 ${address.slice(0, 6)}...${address.slice(-4)}`;
-      btn.classList.add('connected');
+  const container = document.getElementById('wallet-connect-root');
+  if (container) {
+    container.classList.toggle('connected', Boolean(isConnected));
+    if (address) {
+      container.dataset.address = address;
     } else {
-      btn.textContent = '🔗 Connect Wallet';
-      btn.classList.remove('connected');
+      delete container.dataset.address;
     }
   }
 }

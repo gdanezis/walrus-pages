@@ -117,6 +117,22 @@ body {
   background: #059669;
 }
 
+.wallet-connect-root {
+  display: flex;
+  align-items: center;
+  min-width: 12rem;
+}
+
+.wallet-connect-root .wallet-connect-button {
+  width: 100%;
+}
+
+.wallet-connect-root .wallet-connect-button button {
+  width: 100%;
+  justify-content: center;
+  font-weight: 600;
+}
+
 .logo {
   text-decoration: none;
   color: inherit;
@@ -1484,5 +1500,4 @@ body {
     grid-template-columns: 1fr;
   }
 }
-
 

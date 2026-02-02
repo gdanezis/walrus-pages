@@ -1,100 +1,124 @@
-/**
- * Wallet Module - Sui wallet connection using Wallet Standard
- */
-
-import { getWallets } from '@mysten/wallet-standard';
+import {
+  getWalletBridgeState,
+  subscribeToWalletBridge,
+  waitForWalletBridgeReady,
+} from '../dapp-kit/wallet-state.js';
 
 let currentWallet = null;
 let currentAccount = null;
+let disconnectFn = null;
+let signAndExecuteFn = null;
+let connectionStatus = 'disconnected';
 
-export async function connectWallet() {
-  try {
-    // Get available wallets using Wallet Standard
-    const wallets = getWallets();
-    
-    if (!wallets || wallets.get().length === 0) {
-      throw new Error('No Sui wallet detected. Please install a Sui wallet extension like Sui Wallet or Suiet.');
+const walletListeners = new Set();
+
+function getSnapshot() {
+  return {
+    wallet: currentWallet,
+    account: currentAccount,
+    status: connectionStatus,
+    isConnected: isWalletConnected(),
+    address: currentAccount?.address ?? null,
+  };
+}
+
+function notifyWalletListeners() {
+  const snapshot = getSnapshot();
+  for (const listener of walletListeners) {
+    try {
+      listener(snapshot);
+    } catch (error) {
+      console.error('Wallet listener error:', error);
     }
-    
-    // Filter for Sui-compatible wallets by checking chains
-    const allWallets = wallets.get();
-    const suiWallets = allWallets.filter(wallet => {
-      // Check if wallet supports Sui chains
-      return wallet.chains && wallet.chains.some(chain => 
-        chain.startsWith('sui:')
-      );
-    });
-    
-    if (suiWallets.length === 0) {
-      throw new Error('No Sui wallet detected. Please install a Sui wallet extension like Slush, Sui Wallet, or Suiet.');
-    }
-    
-    // Use first available Sui wallet
-    const wallet = suiWallets[0];
-    currentWallet = wallet;
-    
-    console.log('Connecting to wallet:', wallet.name);
-    
-    // Request account access
-    const accounts = await wallet.features['standard:connect'].connect();
-    
-    if (!accounts || accounts.accounts.length === 0) {
-      throw new Error('No accounts found in wallet');
-    }
-    
-    currentAccount = accounts.accounts[0];
-    
-    // Save connection state to localStorage
-    localStorage.setItem('walrus_wallet_name', wallet.name);
-    localStorage.setItem('walrus_wallet_address', currentAccount.address);
-    
-    return currentAccount.address;
-  } catch (error) {
-    console.error('Error connecting wallet:', error);
-    currentWallet = null;
-    currentAccount = null;
-    throw error;
   }
 }
 
-export function disconnectWallet() {
-  currentWallet = null;
-  currentAccount = null;
-  localStorage.removeItem('walrus_wallet_name');
-  localStorage.removeItem('walrus_wallet_address');
+function handleBridgeUpdate(state) {
+  currentWallet = state.wallet ?? null;
+  currentAccount = state.account ?? null;
+  disconnectFn = state.disconnect ?? null;
+  signAndExecuteFn = state.signAndExecute ?? null;
+  connectionStatus = state.status ?? 'disconnected';
+  notifyWalletListeners();
+}
+
+handleBridgeUpdate(getWalletBridgeState());
+subscribeToWalletBridge(handleBridgeUpdate);
+
+export function subscribeToWalletChanges(listener) {
+  walletListeners.add(listener);
+  // Immediately invoke listener with current state for convenience
+  listener(getSnapshot());
+  return () => {
+    walletListeners.delete(listener);
+  };
+}
+
+export async function connectWallet() {
+  if (isWalletConnected()) {
+    return currentAccount.address;
+  }
+
+  const trigger = document.querySelector('[data-wallet-connect-trigger]');
+  if (!trigger) {
+    throw new Error('Wallet connect button is not available yet. Please try again shortly.');
+  }
+
+  trigger.click();
+
+  return waitForConnection();
+}
+
+function waitForConnection(timeoutMs = 60000) {
+  return new Promise((resolve, reject) => {
+    if (isWalletConnected()) {
+      resolve(currentAccount.address);
+      return;
+    }
+
+    let resolved = false;
+
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        unsubscribe();
+        reject(new Error('Wallet connection timed out'));
+      }
+    }, timeoutMs);
+
+    const unsubscribe = subscribeToWalletChanges((snapshot) => {
+      if (snapshot.isConnected && snapshot.address) {
+        resolved = true;
+        clearTimeout(timeout);
+        unsubscribe();
+        resolve(snapshot.address);
+      }
+    });
+  });
+}
+
+export async function disconnectWallet() {
+  if (disconnectFn) {
+    await disconnectFn();
+  }
 }
 
 export function getWalletAddress() {
-  return currentAccount?.address || null;
+  return currentAccount?.address ?? null;
 }
 
 export function isWalletConnected() {
-  return currentWallet !== null && currentAccount !== null;
+  return Boolean(currentWallet && currentAccount);
 }
 
 export async function signAndExecuteTransaction(transaction) {
-  if (!currentWallet || !currentAccount) {
+  if (!signAndExecuteFn) {
     throw new Error('Wallet not connected');
   }
-  
-  try {
-    // Use the wallet's signAndExecuteTransactionBlock feature
-    const result = await currentWallet.features['sui:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
-      transactionBlock: transaction,
-      account: currentAccount,
-      chain: 'sui:mainnet',
-      options: {
-        showEffects: true,
-        showObjectChanges: true,
-      },
-      requestType: 'WaitForLocalExecution',
-    });
-    
-    return result;
-  } catch (error) {
-    console.error('Transaction error:', error);
-    throw error;
-  }
+
+  return signAndExecuteFn({
+    transaction,
+    chain: 'sui:mainnet',
+  });
 }
 
 export function getWallet() {
@@ -106,63 +130,6 @@ export function getAccount() {
 }
 
 export async function restoreWalletConnection() {
-  const savedWalletName = localStorage.getItem('walrus_wallet_name');
-  const savedAddress = localStorage.getItem('walrus_wallet_address');
-  
-  if (!savedWalletName || !savedAddress) {
-    return null;
-  }
-  
-  try {
-    // Try to find the wallet with retries (wallet extensions may load slowly)
-    let wallet = null;
-    const maxRetries = 3;
-    
-    for (let i = 0; i < maxRetries; i++) {
-      const wallets = getWallets();
-      const allWallets = wallets.get();
-      
-      wallet = allWallets.find(w => w.name === savedWalletName);
-      
-      if (wallet) {
-        break;
-      }
-      
-      // Wait a bit before retrying (wallet extension might still be loading)
-      if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-    
-    if (!wallet) {
-      // Wallet not found, clear saved data
-      localStorage.removeItem('walrus_wallet_name');
-      localStorage.removeItem('walrus_wallet_address');
-      return null;
-    }
-    
-    currentWallet = wallet;
-    
-    // Try to reconnect
-    const accounts = await wallet.features['standard:connect'].connect();
-    
-    if (!accounts || accounts.accounts.length === 0) {
-      disconnectWallet();
-      return null;
-    }
-    
-    currentAccount = accounts.accounts[0];
-    
-    // Verify address matches
-    if (currentAccount.address !== savedAddress) {
-      disconnectWallet();
-      return null;
-    }
-    
-    return currentAccount.address;
-  } catch (error) {
-    console.error('Error restoring wallet connection:', error);
-    disconnectWallet();
-    return null;
-  }
+  await waitForWalletBridgeReady();
+  return getWalletAddress();
 }
