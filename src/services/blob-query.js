@@ -3,7 +3,7 @@
  * Handles querying user blobs from the Sui blockchain
  */
 
-import { SuiClient } from '@mysten/sui/client';
+import { CoreClient } from '@mysten/sui/client';
 import { WalrusClient } from '@mysten/walrus';
 import { getSuiRpcUrl } from '../utils/settings.js';
 import { WALRUS_BLOB_TYPE, WALRUS_NETWORK } from '../config/constants.js';
@@ -39,7 +39,7 @@ export async function getCurrentEpoch() {
 export async function getBlobSender(objectId) {
   try {
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     
     // Get the object to find its previous transaction
     const object = await client.getObject({
@@ -82,7 +82,7 @@ export async function getUserBlobs(address, options = {}) {
   
   try {
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     const currentEpoch = await getCurrentEpoch();
     
     // Query all objects owned by user with pagination
@@ -254,7 +254,7 @@ export async function getUserBlobs(address, options = {}) {
 export async function getAllUserBlobs(address) {
   try {
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     const currentEpoch = await getCurrentEpoch();
     
     console.log('🔍 Querying ALL blobs for address:', address);

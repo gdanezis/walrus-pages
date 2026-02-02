@@ -3,7 +3,7 @@
  * Handles fetching and parsing blob metadata from Sui blockchain
  */
 
-import { SuiClient } from '@mysten/sui/client';
+import { CoreClient } from '@mysten/sui/client';
 import { getSuiRpcUrl } from '../utils/settings.js';
 import { PAGE_TITLE_ATTRIBUTE, CONTENT_TYPE_ATTRIBUTE } from '../config/constants.js';
 
@@ -15,7 +15,7 @@ import { PAGE_TITLE_ATTRIBUTE, CONTENT_TYPE_ATTRIBUTE } from '../config/constant
 export async function getBlobMetadata(objectId) {
   try {
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     
     // Get object details
     const object = await client.getObject({
@@ -78,7 +78,7 @@ export async function getBlobMetadata(objectId) {
 export async function getBlobAttribute(objectId, attributeName) {
   try {
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     
     // Get dynamic fields (where attributes are stored)
     const dynamicFields = await client.getDynamicFields({

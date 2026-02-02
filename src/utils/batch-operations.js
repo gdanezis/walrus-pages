@@ -4,7 +4,7 @@
 
 import { Transaction } from '@mysten/sui/transactions';
 import { WalrusClient } from '@mysten/walrus';
-import { SuiClient } from '@mysten/sui/client';
+import { CoreClient } from '@mysten/sui/client';
 import { getWallet, getAccount, signAndExecuteTransaction } from './wallet.js';
 import { getSuiRpcUrl } from './settings.js';
 import { 
@@ -33,7 +33,7 @@ export async function extendBlobsBatch(blobObjects, extendedEpochs = 5) {
   
   try {
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     const walrusClient = new WalrusClient({
       network: 'mainnet',
       suiRpcUrl: suiRpcUrl,

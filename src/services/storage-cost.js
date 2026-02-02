@@ -3,7 +3,7 @@
  * Handles cost estimation for Walrus storage operations
  */
 
-import { SuiClient } from '@mysten/sui/client';
+import { CoreClient } from '@mysten/sui/client';
 import { SUI_RPC_URL, MAX_EPOCHS } from '../config/constants.js';
 import { getSuiRpcUrl } from '../utils/settings.js';
 
@@ -16,7 +16,7 @@ import { getSuiRpcUrl } from '../utils/settings.js';
 export async function calculateStorageCost(sizeBytes, epochs = MAX_EPOCHS) {
   try {
     const suiRpcUrl = getSuiRpcUrl();
-    const client = new SuiClient({ url: suiRpcUrl });
+    const client = new CoreClient({ url: suiRpcUrl });
     
     // TODO: Query Walrus system object for current pricing
     // Storage cost = size * epochs * price_per_unit
