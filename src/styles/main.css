@@ -1166,6 +1166,141 @@ body {
   }
 }
 
+/* Wallet Dropdown */
+.wallet-dropdown {
+  position: fixed;
+  z-index: 200;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  overflow: hidden;
+}
+
+.wallet-dropdown-address {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.wallet-dropdown-address:hover {
+  background: var(--surface-color);
+}
+
+.wallet-dropdown-address-text {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.wallet-dropdown-copy-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.wallet-dropdown-disconnect {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--danger-color);
+  transition: background 0.15s;
+}
+
+.wallet-dropdown-disconnect:hover {
+  background: var(--surface-color);
+}
+
+/* Wallet Picker Modal */
+.wallet-picker-content {
+  max-width: 420px;
+}
+
+.wallet-picker-body {
+  padding: 1rem 2rem 1.5rem;
+}
+
+.wallet-picker-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0 0 1rem;
+}
+
+.wallet-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.wallet-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: var(--bg-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.wallet-picker-item:hover {
+  border-color: var(--primary-color);
+  background: var(--surface-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.wallet-picker-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.375rem;
+  object-fit: contain;
+}
+
+.wallet-picker-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.wallet-picker-name {
+  font-weight: 500;
+}
+
+.wallet-picker-sublabel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.wallet-picker-hint {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.wallet-picker-hint a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.wallet-picker-hint a:hover {
+  text-decoration: underline;
+}
+
 /* EasyMDE overrides */
 .EasyMDEContainer {
   border-radius: 0.5rem;

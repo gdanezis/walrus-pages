@@ -2,20 +2,17 @@
  * Admin Panel for managing expired blobs
  */
 
-import { connectWallet, getAccount } from './utils/wallet.js';
+import { connectWallet, disconnectWallet, isWalletConnected, getAccount, getWalletAddress, onAccountChange, restoreWalletConnection } from './utils/wallet.js';
 import { fetchAllBlobs } from './utils/api.js';
 import { deleteBlobsBatch } from './utils/batch-operations.js';
 import { WalrusClient } from '@mysten/walrus';
 import { showLoading, hideLoading, showError } from './utils/notifications.js';
 import { getSuiRpcUrl } from './utils/settings.js';
-import { 
-  createAdminBlobCard, 
-  attachAdminCardHandlers 
+import {
+  createAdminBlobCard,
+  attachAdminCardHandlers
 } from './components/blob-card.js';
-import { 
-  SUI_RPC_URL,
-  WALRUS_NETWORK 
-} from './config/constants.js';
+import { showWalletDropdown, hideWalletDropdown, isWalletDropdownOpen } from './components/wallet-dropdown.js';
 
 // State
 let allBlobs = [];
@@ -51,9 +48,25 @@ function updateWalletInfo() {
 }
 
 async function handleConnectWallet() {
+  if (isWalletConnected()) {
+    if (isWalletDropdownOpen()) {
+      hideWalletDropdown();
+    } else {
+      showWalletDropdown({
+        address: getWalletAddress(),
+        onDisconnect() {
+          disconnectWallet();
+          updateWalletInfo();
+        },
+      });
+    }
+    return;
+  }
+
   try {
-    showLoading('Connecting wallet...');
-    await connectWallet();
+    const address = await connectWallet();
+    if (!address) return; // User cancelled wallet picker
+
     updateWalletInfo();
     await loadData();
   } catch (error) {
@@ -252,12 +265,16 @@ clearSelectionBtn.addEventListener('click', handleClearSelection);
 // Initialize
 async function init() {
   console.log('Initializing admin panel...');
-  
+
+  onAccountChange(() => {
+    updateWalletInfo();
+  });
+
+  // Try to restore wallet connection from previous session
+  await restoreWalletConnection();
   updateWalletInfo();
-  
-  const account = getAccount();
-  if (account) {
-    // Wallet already connected, load data
+
+  if (isWalletConnected()) {
     try {
       await loadData();
     } catch (error) {
@@ -265,7 +282,6 @@ async function init() {
       showError('Failed to load data: ' + error.message);
     }
   } else {
-    // Show connect wallet button
     hideLoading();
   }
 }
