@@ -87,34 +87,31 @@ site-builder publish --epochs 50 dist/
 
 ### Success Output
 
+The publish command prints the new site object ID — **save this**, you'll need it for updates:
+
 ```
 Parsing the directory dist/ ... [Ok]
 Computing Quilt IDs and storing Quilts ... [Ok]
 Applying the Walrus Site object updates on Sui ... [Ok]
 
-Created new site! 
-New site object ID: 0x5d2d664b19637ae6e907bd3161519fbd95ad07c0671008e24f9c620e6f203781
-
-To browse your site:
-http://2blrbj0mnehcwya1gu5lb85r17abotbimw1id2oivd0tqjw0w1.walrus.site
+Created new site!
+New site object ID: 0x5cf004538d715e61c37aafbc464d06524659dc79ac89eec1f2a1e78cf5fc61ff
 ```
 
-## Accessing Your Site
+## Current Deployment
 
-Your site is live at `http://<subdomain>.walrus.site` where the subdomain is derived from your site object ID.
-
-Example: `http://2blrbj0mnehcwya1gu5lb85r17abotbimw1id2oivd0tqjw0w1.walrus.site`
-
-> Note: Currently uses `http://` not `https://`
+**Site object ID**: `0x5cf004538d715e61c37aafbc464d06524659dc79ac89eec1f2a1e78cf5fc61ff`
 
 ## Updating Your Site
+
+The update command requires the site object ID as the last argument:
 
 ```bash
 # Build updates
 npm run build
 
-# Update (reads object ID from dist/ws-resources.json)
-site-builder update --epochs 50 dist/
+# Update existing site (pass the site object ID)
+site-builder update --epochs 50 dist/ 0x5cf004538d715e61c37aafbc464d06524659dc79ac89eec1f2a1e78cf5fc61ff
 ```
 
 ## Troubleshooting
@@ -154,14 +151,14 @@ npm run build
 # Publish new site
 site-builder publish --epochs 50 dist/
 
-# Update existing site  
-site-builder update --epochs 50 dist/
+# Update existing site (requires the site object ID)
+site-builder update --epochs 50 dist/ 0x5cf004538d715e61c37aafbc464d06524659dc79ac89eec1f2a1e78cf5fc61ff
 
 # Check balances
 sui client balance
 
 # View site structure
-site-builder sitemap 0xYOUR_SITE_OBJECT_ID
+site-builder sitemap 0x5cf004538d715e61c37aafbc464d06524659dc79ac89eec1f2a1e78cf5fc61ff
 ```
 
 ## Learn More
