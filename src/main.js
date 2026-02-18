@@ -9,12 +9,13 @@ import 'easymde/dist/easymde.min.css';
 import { getPageId, showView, getAddress } from './utils/router.js';
 import { fetchBlob } from './utils/walrus.js';
 import { renderMarkdown } from './utils/markdown.js';
-import { 
-  connectWallet, 
-  disconnectWallet, 
+import {
+  connectWallet,
+  disconnectWallet,
   isWalletConnected,
   getWalletAddress,
-  restoreWalletConnection
+  restoreWalletConnection,
+  onAccountChange
 } from './utils/wallet.js';
 import {
   showLoading,
@@ -39,6 +40,7 @@ import {
   deleteBlobsBatch
 } from './utils/batch-operations.js';
 import { initSettingsModal } from './components/settings-modal.js';
+import { showWalletDropdown, hideWalletDropdown, isWalletDropdownOpen } from './components/wallet-dropdown.js';
 import { WAL_COIN_TYPE } from './config/constants.js';
 
 // Global state
@@ -53,7 +55,13 @@ let currentBlobs = []; // Store current blob list
 async function init() {
   // Initialize settings modal
   initSettingsModal();
-  
+
+  // React to account changes in the wallet extension
+  onAccountChange((newAddress) => {
+    updateWalletButton(true, newAddress);
+    updateProfileLink(newAddress);
+  });
+
   // Try to restore wallet connection from previous session
   const restoredAddress = await restoreWalletConnection();
   if (restoredAddress) {
@@ -528,10 +536,19 @@ function hideAddressInputPanel() {
 // Toggle wallet connection
 async function toggleWallet() {
   if (isWalletConnected()) {
-    disconnectWallet();
-    updateWalletButton(false);
-    showMyPagesButton(false);
-    showMyPagesSection(false);
+    if (isWalletDropdownOpen()) {
+      hideWalletDropdown();
+    } else {
+      showWalletDropdown({
+        address: getWalletAddress(),
+        onDisconnect() {
+          disconnectWallet();
+          updateWalletButton(false);
+          showMyPagesButton(false);
+          showMyPagesSection(false);
+        },
+      });
+    }
   } else {
     await handleWalletConnect();
   }
@@ -539,15 +556,14 @@ async function toggleWallet() {
 
 // Handle wallet connection
 async function handleWalletConnect() {
-  showLoading('Connecting wallet...');
-  
   try {
     const address = await connectWallet();
+    if (!address) return; // User cancelled wallet picker
+
     updateWalletButton(true, address);
     showMyPagesButton(true);
     updateProfileLink(address);
-    hideLoading();
-    
+
     // Load user's pages if on landing view
     const currentView = document.querySelector('.view:not(.hidden)');
     if (currentView && currentView.id === 'landing') {
